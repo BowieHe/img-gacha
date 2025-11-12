@@ -1,0 +1,42 @@
+# pnpm
+pnpm-lock.yaml
+
+# Dependencies
+node_modules/
+.pnpm
+*.pnpm
+
+# Build
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.vscode-test/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# OS
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# Logs
+npm-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Cache
+.eslintcache
+.stylelintcache
