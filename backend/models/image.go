@@ -19,6 +19,7 @@ type GenerationRequest struct {
 type GenerationResponse struct {
 	TaskID    string    `json:"task_id"`
 	Status    string    `json:"status"`
+	Images    []string  `json:"images,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

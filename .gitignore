@@ -5,6 +5,7 @@ backend/.env
 backend/go.sum
 backend/images/
 backend/dist/
+backend/img-gacha
 
 # Frontend
 frontend/node_modules/

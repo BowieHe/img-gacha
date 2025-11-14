@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"time"
@@ -11,19 +12,55 @@ import (
 
 // ImageGenerator handles image generation logic
 type ImageGenerator struct {
-	// Add fields for model clients (Stable Diffusion, DALL-E, etc.)
+	geminiService *GeminiService
+	openaiService *OpenAIService
+}
+
+// NewImageGenerator creates a new ImageGenerator instance
+func NewImageGenerator(ctx context.Context) (*ImageGenerator, error) {
+	geminiService, err := NewGeminiService(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Gemini service: %w", err)
+	}
+
+	return &ImageGenerator{
+		geminiService: geminiService,
+		openaiService: NewOpenAIService(),
+	}, nil
 }
 
 // GenerateImages creates multiple images based on the request
 func (ig *ImageGenerator) GenerateImages(req *models.GenerationRequest) (*models.GenerationResponse, error) {
 	taskID := uuid.New().String()
 
-	// TODO: Implement actual image generation logic
-	// This will route to the appropriate model based on req.Model
+	// Route to appropriate service based on model
+	var imageURLs []string
+	var err error
+
+	switch req.Model {
+	case "gemini-2.0-flash", "gemini-image":
+		imageURLs, err = ig.geminiService.GenerateImages(req.Prompt, req.Count)
+	case "gpt-4-image":
+		// First, use GPT-4 to enhance the prompt
+		enhancedPrompt, err := ig.openaiService.GenerateImageDescription(req.Prompt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to enhance prompt with GPT-4: %w", err)
+		}
+
+		// Then generate with the enhanced prompt using Gemini
+		imageURLs, err = ig.geminiService.GenerateImages(enhancedPrompt, req.Count)
+	default:
+		return nil, fmt.Errorf("unsupported model: %s", req.Model)
+	}
+
+	if err != nil {
+		return nil, err
+	}
 
 	resp := &models.GenerationResponse{
 		TaskID:    taskID,
-		Status:    "pending",
+		Status:    "completed",
+		Images:    imageURLs,
 		CreatedAt: time.Now(),
 	}
 

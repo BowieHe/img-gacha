@@ -1,14 +1,29 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
+	"github.com/BowieHe/img-gacha/models"
+	"github.com/BowieHe/img-gacha/services"
 	"github.com/gin-gonic/gin"
 )
 
+var imageGenerator *services.ImageGenerator
+
 func main() {
 	router := gin.Default()
+
+	// Initialize context
+	ctx := context.Background()
+
+	// Initialize image generator
+	var err error
+	imageGenerator, err = services.NewImageGenerator(ctx)
+	if err != nil {
+		log.Fatalf("Failed to initialize image generator: %v", err)
+	}
 
 	// Enable CORS
 	router.Use(corsMiddleware())
@@ -50,17 +65,57 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func generateImage(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Image generation endpoint",
-	})
+	var req models.GenerationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// Set default values
+	if req.Steps == 0 {
+		req.Steps = 50
+	}
+	if req.CFGScale == 0 {
+		req.CFGScale = 7.5
+	}
+	if req.Count == 0 {
+		req.Count = 1
+	}
+	if req.ImageHeight == 0 {
+		req.ImageHeight = 768
+	}
+	if req.ImageWidth == 0 {
+		req.ImageWidth = 768
+	}
+
+	resp, err := imageGenerator.GenerateImages(&req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 func getAvailableModels(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"models": []string{
-			"stable-diffusion-v1.5",
-			"stable-diffusion-v2.1",
-			"dall-e-3",
+		"models": []gin.H{
+			{
+				"id":          "gemini-2.0-flash",
+				"name":        "Gemini 2.0 Flash",
+				"description": "Fast and powerful image generation with Gemini",
+				"provider":    "Google Gemini",
+			},
+			{
+				"id":          "gpt-4-image",
+				"name":        "GPT-4 Enhanced Generation",
+				"description": "Uses GPT-4 to enhance prompts, then generates with Gemini",
+				"provider":    "OpenAI + Google Gemini",
+			},
 		},
 	})
 }
